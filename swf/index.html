@@ -2,80 +2,188 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Flash Game Launcher</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000; display: flex; justify-content: center; align-items: center; font-family: sans-serif; }
-        #player-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
-        
-        /* The overlay launcher screen */
-        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 20, 20, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; color: white; cursor: pointer; text-align: center; padding: 20px; }
-        #start-btn { padding: 15px 40px; font-size: 1.5rem; font-weight: bold; color: #fff; background: #ff4757; border: none; border-radius: 50px; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); transition: transform 0.2s; margin-bottom: 15px; }
-        #start-overlay:hover #start-btn { transform: scale(1.05); }
-        #game-title { font-size: 1.2rem; margin-bottom: 20px; color: #00d2d3; font-weight: bold; }
-        
-        /* Ruffle Player styling */
-        ruffle-player { width: 100% !important; height: 100% !important; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #player-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #game-box {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        ruffle-player {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Overlay */
+        #start-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #fff;
+            text-align: center;
+            padding: 24px;
+        }
+
+        #game-title {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #00d2d3;
+            font-weight: 600;
+            word-break: break-all;
+            max-width: 90%;
+        }
+
+        #start-btn {
+            padding: 16px 42px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #fff;
+            background: #ff4757;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 18px rgba(255, 71, 87, 0.45);
+            cursor: pointer;
+            outline: none;
+        }
+
+        #sub-note {
+            margin-top: 14px;
+            opacity: 0.65;
+            font-size: 0.85rem;
+        }
+
+        /* CSS Fallback prompt for Portrait orientation on iOS / unsupported devices */
+        #rotate-warning {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            color: #fff;
+            z-index: 999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media screen and (orientation: portrait) {
+            #rotate-warning {
+                display: flex;
+            }
+        }
     </style>
-    <!-- Dynamic Ruffle Cloud Loader -->
-    <script src="https://unpkg.com"></script>
+
+    <!-- Correct Ruffle CDN build -->
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
 </head>
 <body>
 
+    <!-- Prompt displayed automatically when in portrait mode -->
+    <div id="rotate-warning">
+        <p style="font-size: 2rem; margin-bottom: 12px;">🔄</p>
+        <p style="font-size: 1.1rem; font-weight: 600;">Please rotate your phone to Landscape mode</p>
+    </div>
+
     <div id="player-container">
-        <div id="start-overlay" onclick="launchGame()">
+        <div id="start-overlay">
             <div id="game-title">Loading...</div>
-            <button id="start-btn">TAP TO PLAY</button>
-            <p style="opacity: 0.7; font-size: 0.9rem;">Forces Fullscreen & Landscape Mode</p>
+            <button id="start-btn" onclick="launchGame()">TAP TO PLAY</button>
+            <p id="sub-note">Enters Fullscreen & Landscape</p>
         </div>
-        <div id="game-box" style="width:100%; height:100%;"></div>
+        <div id="game-box"></div>
     </div>
 
     <script>
-        // 1. Grab the dynamic file argument from the URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // If your link is ://site.com, this grabs "mario.swf"
-        // If no parameter is provided, it defaults directly to "blabla.swf"
-        const swfFile = urlParams.get('game') || 'blabla.swf';
+        const swfFile = urlParams.get('game') || 'angryAviv.swf';
 
-        // Update the loading screen text so you know what file is targeted
-        document.getElementById('game-title').innerText = "Target Game: " + swfFile;
+        document.getElementById('game-title').innerText = "Game: " + swfFile;
 
-        function launchGame() {
-            const container = document.documentElement; 
-            
-            // 2. Trigger Fullscreen (Android requirement for locking orientation)
-            if (container.requestFullscreen) {
-                container.requestFullscreen();
-            } else if (container.webkitRequestFullscreen) { /* Safari */
-                container.webkitRequestFullscreen();
+        async function launchGame() {
+            const container = document.documentElement;
+
+            // 1. Fullscreen request (Standard + WebKit)
+            try {
+                if (container.requestFullscreen) {
+                    await container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    await container.webkitRequestFullscreen();
+                }
+            } catch (err) {
+                console.warn("Fullscreen request bypassed:", err);
             }
 
-            // 3. Force Phone Into Landscape Orientation
+            // 2. Orientation Lock (Works on Android Chrome; Safari ignores it)
             if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(err => {
-                    console.log("Desktop or un-supported browser skipped orientation flip.");
+                screen.orientation.lock('landscape').catch(() => {
+                    console.log("Orientation lock not permitted or unsupported.");
                 });
             }
 
-            // 4. Wipe away the UI overlay and init the emulator
+            // 3. Remove overlay
             document.getElementById('start-overlay').style.display = 'none';
-            
+
+            // 4. Initialize Ruffle Player
+            if (!window.RufflePlayer) {
+                alert("Ruffle engine could not be loaded. Check your internet connection.");
+                return;
+            }
+
             const ruffle = window.RufflePlayer.newest();
             const player = ruffle.createPlayer();
             const gameBox = document.getElementById('game-box');
             gameBox.appendChild(player);
-            
+
             player.config = {
                 letterbox: "on",
                 scale: "showAll",
-                forceScale: true
+                forceScale: true,
+                autoplay: "on",
+                unmuteOverlay: "hidden"
             };
-            
-            // 5. Inject your dynamic target filename
-            player.load(swfFile); 
+
+            // 5. Load the target SWF
+            player.load(swfFile).catch(err => {
+                console.error("SWF Load Error:", err);
+                alert("Failed to load: " + swfFile + ". Verify the file name and location.");
+            });
         }
     </script>
 </body>
