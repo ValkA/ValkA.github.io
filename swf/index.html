@@ -21,7 +21,7 @@
             background-color: #000;
         }
 
-        /* Responsive wrapper: normal landscape layout */
+        /* Default landscape container */
         #game-box {
             position: absolute;
             top: 0;
@@ -34,7 +34,7 @@
             background-color: #000;
         }
 
-        /* If user holds phone in portrait, rotate viewport 90deg and swap dimensions */
+        /* Auto-rotate 90 degrees if phone is held in portrait */
         @media screen and (orientation: portrait) {
             #game-box {
                 width: 100vh;
@@ -52,7 +52,7 @@
         }
     </style>
 
-    <!-- Configure Ruffle before script load -->
+    <!-- Configure Ruffle before loading the engine -->
     <script>
         window.RufflePlayer = window.RufflePlayer || {};
         window.RufflePlayer.config = {
@@ -73,46 +73,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const swfFile = urlParams.get('game') || 'angryAviv.swf';
 
-        function initPlayer() {
+        function boot() {
             if (!window.RufflePlayer || typeof window.RufflePlayer.newest !== "function") {
-                // If Ruffle script hasn't finished parsing yet, retry shortly
-                setTimeout(initPlayer, 50);
+                setTimeout(boot, 40);
                 return;
             }
 
             const ruffle = window.RufflePlayer.newest();
             const player = ruffle.createPlayer();
-            const gameBox = document.getElementById('game-box');
-            gameBox.appendChild(player);
+            document.getElementById('game-box').appendChild(player);
 
-            player.load(swfFile).catch(err => {
-                console.error("SWF Load Error:", err);
-            });
-
-            // Attempt native orientation lock if browser allows without gesture
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
-            }
-        }
-
-        // Auto-run immediately when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPlayer);
-        } else {
-            initPlayer();
-        }
-
-        // Attempt fullscreen on the very first touch/click anywhere on the game
-        window.addEventListener('pointerdown', () => {
-            const el = document.documentElement;
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                if (el.requestFullscreen) {
-                    el.requestFullscreen().catch(() => {});
-                } else if (el.webkitRequestFullscreen) {
-                    el.webkitRequestFullscreen();
-                }
-            }
-        }, { once: true });
-    </script>
-</body>
-</html>
+            player.load(swfFile).catch(
