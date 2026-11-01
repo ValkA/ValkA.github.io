@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flash Game Launcher</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000; display: flex; justify-content: center; align-items: center; font-family: sans-serif; }
+        #player-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
+        
+        /* The overlay launcher screen */
+        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 20, 20, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; color: white; cursor: pointer; text-align: center; padding: 20px; }
+        #start-btn { padding: 15px 40px; font-size: 1.5rem; font-weight: bold; color: #fff; background: #ff4757; border: none; border-radius: 50px; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); transition: transform 0.2s; margin-bottom: 15px; }
+        #start-overlay:hover #start-btn { transform: scale(1.05); }
+        #game-title { font-size: 1.2rem; margin-bottom: 20px; color: #00d2d3; font-weight: bold; }
+        
+        /* Ruffle Player styling */
+        ruffle-player { width: 100% !important; height: 100% !important; }
+    </style>
+    <!-- Dynamic Ruffle Cloud Loader -->
+    <script src="https://unpkg.com"></script>
+</head>
+<body>
+
+    <div id="player-container">
+        <div id="start-overlay" onclick="launchGame()">
+            <div id="game-title">Loading...</div>
+            <button id="start-btn">TAP TO PLAY</button>
+            <p style="opacity: 0.7; font-size: 0.9rem;">Forces Fullscreen & Landscape Mode</p>
+        </div>
+        <div id="game-box" style="width:100%; height:100%;"></div>
+    </div>
+
+    <script>
+        // 1. Grab the dynamic file argument from the URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // If your link is ://site.com, this grabs "mario.swf"
+        // If no parameter is provided, it defaults directly to "blabla.swf"
+        const swfFile = urlParams.get('game') || 'blabla.swf';
+
+        // Update the loading screen text so you know what file is targeted
+        document.getElementById('game-title').innerText = "Target Game: " + swfFile;
+
+        function launchGame() {
+            const container = document.documentElement; 
+            
+            // 2. Trigger Fullscreen (Android requirement for locking orientation)
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) { /* Safari */
+                container.webkitRequestFullscreen();
+            }
+
+            // 3. Force Phone Into Landscape Orientation
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(err => {
+                    console.log("Desktop or un-supported browser skipped orientation flip.");
+                });
+            }
+
+            // 4. Wipe away the UI overlay and init the emulator
+            document.getElementById('start-overlay').style.display = 'none';
+            
+            const ruffle = window.RufflePlayer.newest();
+            const player = ruffle.createPlayer();
+            const gameBox = document.getElementById('game-box');
+            gameBox.appendChild(player);
+            
+            player.config = {
+                letterbox: "on",
+                scale: "showAll",
+                forceScale: true
+            };
+            
+            // 5. Inject your dynamic target filename
+            player.load(swfFile); 
+        }
+    </script>
+</body>
+</html>
