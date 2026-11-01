@@ -44,7 +44,6 @@
             height: 100% !important;
         }
 
-        /* Overlay */
         #start-overlay {
             position: absolute;
             inset: 0;
@@ -88,7 +87,6 @@
             font-size: 0.85rem;
         }
 
-        /* CSS Fallback prompt for Portrait orientation on iOS / unsupported devices */
         #rotate-warning {
             display: none;
             position: fixed;
@@ -110,12 +108,22 @@
         }
     </style>
 
-    <!-- Correct Ruffle CDN build -->
-    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    <!-- Configure Ruffle before loading script -->
+    <script>
+        window.RufflePlayer = window.RufflePlayer || {};
+        window.RufflePlayer.config = {
+            letterbox: "on",
+            scale: "showAll",
+            forceScale: true,
+            autoplay: "on",
+            unmuteOverlay: "hidden"
+        };
+    </script>
+    <!-- jsDelivr direct bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle/ruffle.js"></script>
 </head>
 <body>
 
-    <!-- Prompt displayed automatically when in portrait mode -->
     <div id="rotate-warning">
         <p style="font-size: 2rem; margin-bottom: 12px;">🔄</p>
         <p style="font-size: 1.1rem; font-weight: 600;">Please rotate your phone to Landscape mode</p>
@@ -139,7 +147,7 @@
         async function launchGame() {
             const container = document.documentElement;
 
-            // 1. Fullscreen request (Standard + WebKit)
+            // 1. Fullscreen request
             try {
                 if (container.requestFullscreen) {
                     await container.requestFullscreen();
@@ -147,42 +155,32 @@
                     await container.webkitRequestFullscreen();
                 }
             } catch (err) {
-                console.warn("Fullscreen request bypassed:", err);
+                console.warn("Fullscreen skipped:", err);
             }
 
-            // 2. Orientation Lock (Works on Android Chrome; Safari ignores it)
+            // 2. Landscape lock (Android Chrome)
             if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {
-                    console.log("Orientation lock not permitted or unsupported.");
-                });
+                screen.orientation.lock('landscape').catch(() => {});
             }
 
-            // 3. Remove overlay
-            document.getElementById('start-overlay').style.display = 'none';
-
-            // 4. Initialize Ruffle Player
-            if (!window.RufflePlayer) {
-                alert("Ruffle engine could not be loaded. Check your internet connection.");
+            // 3. Verify Ruffle loaded
+            if (!window.RufflePlayer || typeof window.RufflePlayer.newest !== "function") {
+                alert("Ruffle library failed to load. Check network connection or CDN availability.");
                 return;
             }
 
+            // 4. Hide overlay
+            document.getElementById('start-overlay').style.display = 'none';
+
+            // 5. Mount player and load SWF
             const ruffle = window.RufflePlayer.newest();
             const player = ruffle.createPlayer();
             const gameBox = document.getElementById('game-box');
             gameBox.appendChild(player);
 
-            player.config = {
-                letterbox: "on",
-                scale: "showAll",
-                forceScale: true,
-                autoplay: "on",
-                unmuteOverlay: "hidden"
-            };
-
-            // 5. Load the target SWF
             player.load(swfFile).catch(err => {
                 console.error("SWF Load Error:", err);
-                alert("Failed to load: " + swfFile + ". Verify the file name and location.");
+                alert("Failed to load: " + swfFile + "\nCheck if the file exists at this path relative to the HTML.");
             });
         }
     </script>
